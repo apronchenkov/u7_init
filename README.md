@@ -1,25 +1,28 @@
 ## A library for error handling in C language
 
 
-Currently the key ideas are:
+Currently, the key ideas are:
 
 1. You can pre-allocate errors like "out-of-memory".
 
-2. A simple error forwarding pattern, like:
+2. A simple error forwarding pattern based on a macro:
 ```
-    if (u7_error* err = fn(arg)) {
+    U7_RETURN_IF_ERROR(fn());
+```
+
+Or the same achieved manually:
+```
+    u7_error* error = NULL;
+    if ((error = fn())) {
       return err;
     }
-```
-or using a predefined macro:
-```
-    U7_RETURN_IF_ERROR(fn(arg));
 ```
 
 3. Error handling pattern:
 ```
-    if (u7_error* err = function()) {
+    u7_error* error = NULL;
+    if ((error = fn())) {
         <error-handling>
-        u7_error_release(err);
+        u7_error_release(error);
     }
 ```

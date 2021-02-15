@@ -36,7 +36,7 @@ u7_error* u7_error_out_of_memory() {
       .destroy_fn = &u7_error_destry_noop,
       .error_code = ENOMEM,
       .message = u7_error_out_of_memory_message,
-      .message_size = sizeof(u7_error_out_of_memory_message) - 1,
+      .message_length = sizeof(u7_error_out_of_memory_message) - 1,
   };
 #undef u7_error_out_of_memory_message
 

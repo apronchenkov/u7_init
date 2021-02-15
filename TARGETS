@@ -7,3 +7,13 @@ cc_library(
         'public/error.h',
     ],
 )
+
+cc_binary(
+    name='test',
+    srcs=[
+        'test.c',
+    ],
+    deps=[
+        ':error',
+    ],
+)

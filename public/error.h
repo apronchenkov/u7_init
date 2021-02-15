@@ -33,7 +33,7 @@ struct u7_error_base {
 
   // Error message (string is zero terminated).
   const char* message;
-  int message_size;
+  int message_length;
 
   // The next error in the chain.
   u7_error* cause;
@@ -46,12 +46,13 @@ u7_error* u7_error_acquire(u7_error* self);
 void u7_error_release(u7_error* self);
 
 // A macro for return-if-error behaviour
-#define U7_RETURN_IF_ERROR(call)  \
-  do {                            \
-    if (u7_error* err = (call)) { \
-      return err;                 \
-    }                             \
-  } while (false)
+#define U7_RETURN_IF_ERROR(call)     \
+  do {                               \
+    u7_error* u7_error_tmp = (call); \
+    if (u7_error_tmp) {              \
+      return u7_error_tmp;           \
+    }                                \
+  } while (0)
 
 // Returns a pointer to an error category based on errno (see errno.h).
 const char* u7_error_errno_category();
