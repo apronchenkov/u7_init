@@ -5,11 +5,13 @@
 extern "C" {
 #endif  // __cplusplus
 
-struct u7_error;
+struct u7_error_base;
 
-typedef void (*u7_error_destroy_fn_t)(struct u7_error* self);
+typedef struct u7_error_base const u7_error;
 
-struct u7_error {
+typedef void (*u7_error_destroy_fn_t)(struct u7_error_base* self);
+
+struct u7_error_base {
   // Reference counter for the error structure.
   //
   // This field much be used only by u7_error_acquire() and u7_error_release(),
@@ -34,14 +36,28 @@ struct u7_error {
   int message_size;
 
   // The next error in the chain.
-  struct u7_error const* cause;
+  u7_error* cause;
 };
 
 // Acquires ownership of the error struct.
-struct u7_error const* u7_error_acquire(struct u7_error const* self);
+u7_error* u7_error_acquire(u7_error* self);
 
 // Releases ownership of the error struct.
-void u7_error_release(struct u7_error const* self);
+void u7_error_release(u7_error* self);
+
+// A macro for return-if-error behaviour
+#define U7_RETURN_IF_ERROR(call)  \
+  do {                            \
+    if (u7_error* err = (call)) { \
+      return err;                 \
+    }                             \
+  } while (false)
+
+// Returns a pointer to an error category based on errno (see errno.h).
+const char* u7_error_errno_category();
+
+// Returns an out-of-memory error.
+u7_error* u7_error_out_of_memory();
 
 #ifdef __cplusplus
 }  // extern "C"
