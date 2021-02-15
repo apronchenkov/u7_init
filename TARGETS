@@ -1,0 +1,9 @@
+cc_library(
+    name='error',
+    srcs=[
+        'error.c',
+    ],
+    headers=[
+        'public/error.h',
+    ],
+)
