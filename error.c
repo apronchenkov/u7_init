@@ -27,13 +27,13 @@ const char* u7_error_errno_category() {
   return result;
 }
 
-static void u7_error_destry_noop(struct u7_error_base* self) { (void)self; }
+void u7_error_destroy_noop_fn(struct u7_error_base* self) { (void)self; }
 
 u7_error* u7_error_out_of_memory() {
 #define u7_error_out_of_memory_message "out of memory"
   static struct u7_error_base result = {
       .ref_count = 1,
-      .destroy_fn = &u7_error_destry_noop,
+      .destroy_fn = &u7_error_destroy_noop_fn,
       .error_code = ENOMEM,
       .message = u7_error_out_of_memory_message,
       .message_length = sizeof(u7_error_out_of_memory_message) - 1,

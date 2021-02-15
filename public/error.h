@@ -60,6 +60,8 @@ const char* u7_error_errno_category();
 // Returns an out-of-memory error.
 u7_error* u7_error_out_of_memory();
 
+void u7_error_destroy_noop_fn(struct u7_error_base* self);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif  // __cplusplus
