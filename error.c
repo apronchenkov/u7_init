@@ -1,48 +1,197 @@
 #include "@/public/error.h"
 
+#include <assert.h>
 #include <errno.h>
 #include <stdatomic.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-u7_error* u7_error_acquire(u7_error* self) {
-  if (self) {
-    atomic_fetch_add_explicit(&((struct u7_error_base*)self)->ref_count, 1,
-                              memory_order_relaxed);
+u7_error u7_error_acquire(u7_error self) {
+  if (self.payload) {
+    atomic_fetch_add_explicit(
+        &((struct u7_error_payload*)self.payload)->ref_count, 1,
+        memory_order_relaxed);
   }
   return self;
 }
 
-void u7_error_release(u7_error* self) {
+void u7_error_release(u7_error self) {
   // Avoid reccursion.
-  while (self && 1 == atomic_fetch_add_explicit(
-                          &((struct u7_error_base*)self)->ref_count, -1,
-                          memory_order_relaxed)) {
-    u7_error* const self_cause = self->cause;
-    self->destroy_fn((struct u7_error_base*)self);
-    self = self_cause;
+  struct u7_error_payload* payload = (struct u7_error_payload*)self.payload;
+  while (payload && 1 == atomic_fetch_add_explicit(&payload->ref_count, -1,
+                                                   memory_order_relaxed)) {
+    struct u7_error_payload* const next_payload =
+        (struct u7_error_payload*)payload->cause.payload;
+    payload->category->destroy_payload_fn(payload->category, payload);
+    payload = next_payload;
   }
 }
 
-const char* u7_error_errno_category() {
-  static char const* const result = "Errno";
+// Returns an error object with given category.
+u7_error u7_verrorf_with_cause(struct u7_error_category const* category,
+                               int error_code, u7_error cause,
+                               const char* format, va_list arg) {
+  const int kN = 128;
+  u7_error result;
+  int message_length = -1;
+  char* message = NULL;
+  {
+    // Fast case: format=""
+    if (format[0] == '\0') {
+      goto ret;
+    }
+  }
+  {
+    // Fast case: format="%s"
+    if (format[0] == '%' && format[1] == 's' && format[2] == '\0') {
+      message = strdup(va_arg(arg, const char*));
+      if (message) {
+        message_length = strlen(message);
+      }
+      goto ret;
+    }
+  }
+  {
+    // Fast case: format="%.*s"
+    if (format[0] == '%' && format[1] == '.' && format[2] == '*' &&
+        format[3] == '\0') {
+      message_length = va_arg(arg, int);
+      message = strdup(va_arg(arg, const char*));
+      goto ret;
+    }
+  }
+  {
+    // Short message.
+    message = (char*)malloc(kN);
+    if (message == NULL) {
+      goto fail;
+    }
+    va_list arg_copy;
+    va_copy(arg_copy, arg);
+    int n = vsnprintf(message, kN, format, arg_copy);
+    va_end(arg_copy);
+    assert(n >= 0);
+    if (n < 0) {
+      goto fail;
+    }
+    message_length = n;
+    if (message_length < kN) {
+      goto ret;
+    }
+  }
+  {
+    // Long message.
+    char* tmp = (char*)realloc(message, message_length + 1);
+    if (!tmp) {
+      goto fail;
+    }
+    message = tmp;
+    int n = vsnprintf(message, message_length + 1, format, arg);
+    assert(n == message_length);
+    if (n != message_length) {
+      goto fail;
+    }
+    goto ret;
+  }
+fail:
+  free(message);
+  message = NULL;
+  message_length = 1;
+ret:
+  result.error_code = error_code;
+  result.payload =
+      category->make_payload_fn(category, message, message_length, cause);
   return result;
 }
 
-void u7_error_destroy_noop_fn(struct u7_error_base* self) { (void)self; }
+u7_error u7_errorf_with_cause(struct u7_error_category const* category,
+                              int error_code, u7_error cause,
+                              const char* format, ...) {
+  va_list arg;
+  va_start(arg, format);
+  u7_error error =
+      u7_verrorf_with_cause(category, error_code, cause, format, arg);
+  va_end(arg);
+  return error;
+}
 
-u7_error* u7_error_out_of_memory() {
-#define u7_error_out_of_memory_message "out of memory"
-  static struct u7_error_base result = {
-      .ref_count = 1,
-      .destroy_fn = &u7_error_destroy_noop_fn,
-      .error_code = ENOMEM,
-      .message = u7_error_out_of_memory_message,
-      .message_length = sizeof(u7_error_out_of_memory_message) - 1,
-  };
-#undef u7_error_out_of_memory_message
+u7_error u7_verrorf(struct u7_error_category const* category, int error_code,
+                    const char* format, va_list arg) {
+  return u7_verrorf_with_cause(category, error_code, u7_ok(), format, arg);
+}
 
-  if (!result.category) {  // Cannot be statically initialized.
-    result.category = u7_error_errno_category();
+u7_error u7_errorf(struct u7_error_category const* category, int error_code,
+                   const char* format, ...) {
+  va_list arg;
+  va_start(arg, format);
+  u7_error error =
+      u7_verrorf_with_cause(category, error_code, u7_ok(), format, arg);
+  va_end(arg);
+  return error;
+}
+
+static struct u7_error_payload const* u7_errno_category_make_payload_fn(
+    struct u7_error_category const* self, char* message, int message_length,
+    u7_error cause);
+
+static void u7_errno_category_destroy_payload_fn(
+    struct u7_error_category const* self, struct u7_error_payload* payload);
+
+static struct u7_error_category u7_errno_category_static_category = {
+    .name = "Errno",
+    .make_payload_fn = &u7_errno_category_make_payload_fn,
+    .destroy_payload_fn = &u7_errno_category_destroy_payload_fn,
+};
+
+static const char u7_errno_category_static_fallback_message[] =
+    "<u7_error:fail>";
+
+static struct u7_error_payload u7_errno_category_static_fallback_payload = {
+    .ref_count = 1,
+    .category = &u7_errno_category_static_category,
+    .message = u7_errno_category_static_fallback_message,
+    .message_length = sizeof(u7_errno_category_static_fallback_message) - 1,
+    .cause = {.error_code = 0, .payload = NULL},
+};
+
+static struct u7_error_payload const* u7_errno_category_make_payload_fn(
+    struct u7_error_category const* self, char* message, int message_length,
+    u7_error cause) {
+  assert(self == &u7_errno_category_static_category);
+  if (message_length < 0) {
+    u7_error_release(cause);
+    atomic_fetch_add_explicit(
+        &u7_errno_category_static_fallback_payload.ref_count, 1,
+        memory_order_relaxed);
+    return &u7_errno_category_static_fallback_payload;
   }
+  struct u7_error_payload* result =
+      (struct u7_error_payload*)malloc(sizeof(struct u7_error_payload));
+  if (!result) {
+    atomic_fetch_add_explicit(
+        &u7_errno_category_static_fallback_payload.ref_count, 1,
+        memory_order_relaxed);
+    u7_error_release(cause);
+    free(message);
+    return &u7_errno_category_static_fallback_payload;
+  }
+  result->ref_count = 1;
+  result->category = &u7_errno_category_static_category;
+  result->message = message;
+  result->message_length = message_length;
+  result->cause = cause;
+  return result;
+}
 
-  return u7_error_acquire(&result);
+static void u7_errno_category_destroy_payload_fn(
+    struct u7_error_category const* self, struct u7_error_payload* payload) {
+  assert(self == &u7_errno_category_static_category);
+  u7_error_release(payload->cause);
+  free((char*)payload->message);
+  free(payload);
+}
+
+struct u7_error_category const* u7_errno_category() {
+  return &u7_errno_category_static_category;
 }

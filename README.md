@@ -12,17 +12,19 @@ Currently, the key ideas are:
 
 Or the same achieved manually:
 ```
-    u7_error* error = NULL;
-    if ((error = fn())) {
+    u7_error error = NULL;
+    if ((error = fn()).error_code) {
       return err;
     }
+    return u7_ok();
 ```
 
 3. Error handling pattern:
 ```
-    u7_error* error = NULL;
-    if ((error = fn())) {
-        <error-handling>
-        u7_error_release(error);
+    u7_error error = NULL;
+    if ((error = fn()).error_code) {
+      fprintf(stderr, "%" U7_ERROR_FMT "\n", U7_ERROR_FMT_PARAMS(error));
+      <error-handling>
+      u7_error_release(error);
     }
 ```
