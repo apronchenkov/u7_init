@@ -28,6 +28,12 @@ void u7_error_release(u7_error self) {
   }
 }
 
+void u7_error_clear(u7_error* self) {
+  u7_error_release(*self);
+  self->error_code = 0;
+  self->payload = NULL;
+}
+
 // Returns an error object with given category.
 u7_error u7_verrorf_with_cause(struct u7_error_category const* category,
                                int error_code, u7_error cause,

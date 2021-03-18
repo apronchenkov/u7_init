@@ -14,7 +14,7 @@ struct u7_error_payload;
 typedef struct {
   // Error code within the category.
   //
-  // NOTE: code=0 is reserved for OK.
+  // NOTE: error_code=0 is reserved for OK.
   int error_code;
 
   // Error category.
@@ -74,6 +74,9 @@ u7_error u7_error_acquire(u7_error self);
 
 // Releases ownership of the error struct.
 void u7_error_release(u7_error self);
+
+// Clears the error structure.
+void u7_error_clear(u7_error* self);
 
 // Returns error's category name.
 static inline const char* u7_error_category_name(u7_error error) {
