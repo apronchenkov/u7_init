@@ -12,7 +12,7 @@ Currently, the key ideas are:
 
 Or the same achieved manually:
 ```c
-    u7_error error = NULL;
+    u7_error error = u7_ok();
     if ((error = fn()).error_code) {
       return err;
     }
