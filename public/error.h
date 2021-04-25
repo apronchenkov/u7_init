@@ -29,7 +29,7 @@ struct u7_error_payload {
   //
   // This field much be used only by u7_error_acquire() and u7_error_release(),
   // The rest of the code MUST ignore this field.
-  /* mutable */ _Atomic(int) ref_count;
+  /* mutable */ volatile int ref_count;
 
   // Error category.
   //

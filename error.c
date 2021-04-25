@@ -2,16 +2,14 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 u7_error u7_error_acquire(u7_error self) {
   if (self.payload) {
-    atomic_fetch_add_explicit(
-        &((struct u7_error_payload*)self.payload)->ref_count, 1,
-        memory_order_relaxed);
+    __atomic_fetch_add(&((struct u7_error_payload*)self.payload)->ref_count, 1,
+                       __ATOMIC_RELAXED);
   }
   return self;
 }
@@ -19,8 +17,8 @@ u7_error u7_error_acquire(u7_error self) {
 void u7_error_release(u7_error self) {
   // Avoid reccursion.
   struct u7_error_payload* payload = (struct u7_error_payload*)self.payload;
-  while (payload && 1 == atomic_fetch_add_explicit(&payload->ref_count, -1,
-                                                   memory_order_relaxed)) {
+  while (payload &&
+         1 == __atomic_fetch_add(&payload->ref_count, -1, __ATOMIC_RELAXED)) {
     struct u7_error_payload* const next_payload =
         (struct u7_error_payload*)payload->cause.payload;
     payload->category->destroy_payload_fn(payload->category, payload);
@@ -164,20 +162,19 @@ static struct u7_error_payload u7_errno_category_static_fallback_payload = {
 static struct u7_error_payload const* u7_errno_category_make_payload_fn(
     struct u7_error_category const* self, char* message, int message_length,
     u7_error cause) {
+  (void)self;
   assert(self == &u7_errno_category_static_category);
   if (message_length < 0) {
     u7_error_release(cause);
-    atomic_fetch_add_explicit(
-        &u7_errno_category_static_fallback_payload.ref_count, 1,
-        memory_order_relaxed);
+    __atomic_fetch_add(&u7_errno_category_static_fallback_payload.ref_count, 1,
+                       __ATOMIC_RELAXED);
     return &u7_errno_category_static_fallback_payload;
   }
   struct u7_error_payload* result =
       (struct u7_error_payload*)malloc(sizeof(struct u7_error_payload));
   if (!result) {
-    atomic_fetch_add_explicit(
-        &u7_errno_category_static_fallback_payload.ref_count, 1,
-        memory_order_relaxed);
+    __atomic_fetch_add(&u7_errno_category_static_fallback_payload.ref_count, 1,
+                       __ATOMIC_RELAXED);
     u7_error_release(cause);
     free(message);
     return &u7_errno_category_static_fallback_payload;
@@ -192,6 +189,7 @@ static struct u7_error_payload const* u7_errno_category_make_payload_fn(
 
 static void u7_errno_category_destroy_payload_fn(
     struct u7_error_category const* self, struct u7_error_payload* payload) {
+  (void)self;
   assert(self == &u7_errno_category_static_category);
   u7_error_release(payload->cause);
   free((char*)payload->message);
