@@ -21,7 +21,7 @@ Or the same achieved manually:
 
 3. Error handling pattern:
 ```c
-    u7_error error = NULL;
+    u7_error error = u7_ok();
     if ((error = fn()).error_code) {
       fprintf(stderr, "%" U7_ERROR_FMT "\n", U7_ERROR_FMT_PARAMS(error));
       <error-handling>

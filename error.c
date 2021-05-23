@@ -59,9 +59,9 @@ u7_error u7_verrorf_with_cause(struct u7_error_category const* category,
   {
     // Fast case: format="%.*s"
     if (format[0] == '%' && format[1] == '.' && format[2] == '*' &&
-        format[3] == '\0') {
+        format[3] == 's' && format[4] == '\0') {
       message_length = va_arg(arg, int);
-      message = strdup(va_arg(arg, const char*));
+      message = strndup(va_arg(arg, const char*), message_length);
       goto ret;
     }
   }
@@ -198,4 +198,13 @@ static void u7_errno_category_destroy_payload_fn(
 
 struct u7_error_category const* u7_errno_category() {
   return &u7_errno_category_static_category;
+}
+
+u7_error u7_errnof(int errno_code, const char* format, ...) {
+  va_list arg;
+  va_start(arg, format);
+  u7_error error = u7_verrorf_with_cause(u7_errno_category(), errno_code,
+                                         u7_ok(), format, arg);
+  va_end(arg);
+  return error;
 }

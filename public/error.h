@@ -17,9 +17,7 @@ typedef struct {
   // NOTE: error_code=0 is reserved for OK.
   int error_code;
 
-  // Error category.
-  //
-  // The pointer address must uniquely identify the error category.
+  // Error payload.
   struct u7_error_payload const* payload;
 } u7_error;
 
@@ -126,6 +124,9 @@ u7_error u7_errorf(struct u7_error_category const* category, int error_code,
 
 // Returns a pointer to an error category based on errno (see errno.h).
 struct u7_error_category const* u7_errno_category();
+
+u7_error u7_errnof(int errno_code, const char* format, ...)
+    __attribute__((format(printf, 2, 3)));
 
 #ifdef __cplusplus
 }  // extern "C"
