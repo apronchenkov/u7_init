@@ -2,9 +2,11 @@ cc_library(
     name='error',
     srcs=[
         'error.c',
+        'memory_allocator.c',
     ],
     headers=[
         'public/error.h',
+        'public/memory_allocator.h',
     ],
 )
 

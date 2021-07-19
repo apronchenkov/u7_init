@@ -11,6 +11,9 @@ extern "C" {
 struct u7_error_category;
 struct u7_error_payload;
 
+// Representation for an error status.
+//
+// u7_error.error_code == 0 indicates no error.
 typedef struct {
   // Error code within the category.
   //
