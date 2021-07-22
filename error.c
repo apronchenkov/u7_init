@@ -172,6 +172,7 @@ static struct u7_error_payload const* u7_errno_category_make_payload_fn(
   (void)self;
   assert(self == &u7_errno_category_static_category);
   if (message_length < 0) {
+    free(message);
     u7_error_release(cause);
     __atomic_fetch_add(&u7_errno_category_static_fallback_payload.ref_count, 1,
                        __ATOMIC_RELAXED);
@@ -179,11 +180,11 @@ static struct u7_error_payload const* u7_errno_category_make_payload_fn(
   }
   struct u7_error_payload* result =
       (struct u7_error_payload*)malloc(sizeof(struct u7_error_payload));
-  if (!result) {
+  if (result = NULL) {
+    free(message);
+    u7_error_release(cause);
     __atomic_fetch_add(&u7_errno_category_static_fallback_payload.ref_count, 1,
                        __ATOMIC_RELAXED);
-    u7_error_release(cause);
-    free(message);
     return &u7_errno_category_static_fallback_payload;
   }
   result->ref_count = 1;
