@@ -11,6 +11,11 @@ u7_error fn_err() {
   return u7_ok();
 }
 
+u7_error gn_err() {
+  return u7_errorf_with_cause(u7_errno_category(), EINVAL, fn_err(), "%s",
+                              "foo.bar");
+}
+
 int main() {
   u7_error error;
   if ((error = fn_ok()).error_code) {
@@ -30,5 +35,15 @@ int main() {
     u7_error_release(error);
     return -1;
   }
+
+  if ((error = gn_err()).error_code) {
+    fprintf(stderr, "%" U7_ERROR_FMT "\n", U7_ERROR_FMT_PARAMS(error));
+    u7_error_release(error);
+  } else {
+    fprintf(stderr, "%" U7_ERROR_FMT "\n", U7_ERROR_FMT_PARAMS(error));
+    u7_error_release(error);
+    return -1;
+  }
+
   return 0;
 }

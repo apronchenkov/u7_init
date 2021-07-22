@@ -24,13 +24,24 @@ typedef struct {
   struct u7_error_payload const* payload;
 } u7_error;
 
+typedef void (*u7_error_payload_dispose_fn_t)(struct u7_error_payload* self);
+
 // Additional information about an error instance.
 struct u7_error_payload {
-  // Reference counter.
+  // Please ignore this field.
+  // This field must be used only by u7_error_acquire() and u7_error_release().
   //
-  // This field much be used only by u7_error_acquire() and u7_error_release(),
-  // The rest of the code MUST ignore this field.
+  // Reference counter.
   /* mutable */ volatile int ref_count;
+
+  // Please ignore this field.
+  // This field must be used only by u7_error_release().
+  //
+  // A method to release resources associated with the payload.
+  //
+  // NOTE: This method ignores resources associated with `cause` field,
+  // u7_error_release() handles this field explicitly.
+  u7_error_payload_dispose_fn_t dispose_fn;
 
   // Error category.
   //
@@ -50,18 +61,12 @@ typedef struct u7_error_payload const* (*u7_error_category_make_payload_fn_t)(
     struct u7_error_category const* self, char* message, int message_length,
     u7_error cause);
 
-typedef void (*u7_error_category_destroy_payload_fn_t)(
-    struct u7_error_category const* self, struct u7_error_payload* payload);
-
 struct u7_error_category {
   // Category name.
   const char* name;
 
   // Factory function for payload of this category.
   u7_error_category_make_payload_fn_t make_payload_fn;
-
-  // Destructor for payloads of this category.
-  u7_error_category_destroy_payload_fn_t destroy_payload_fn;
 };
 
 // Returns a pointer to an ok category.

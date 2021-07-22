@@ -19,10 +19,12 @@ void u7_error_release(u7_error self) {
   struct u7_error_payload* payload = (struct u7_error_payload*)self.payload;
   while (payload &&
          1 == __atomic_fetch_add(&payload->ref_count, -1, __ATOMIC_RELAXED)) {
-    struct u7_error_payload* const next_payload =
+    struct u7_error_payload* const cause_payload =
         (struct u7_error_payload*)payload->cause.payload;
-    payload->category->destroy_payload_fn(payload->category, payload);
-    payload = next_payload;
+    if (payload->dispose_fn != NULL) {
+      payload->dispose_fn(payload);
+    }
+    payload = cause_payload;
   }
 }
 
@@ -139,20 +141,25 @@ static struct u7_error_payload const* u7_errno_category_make_payload_fn(
     struct u7_error_category const* self, char* message, int message_length,
     u7_error cause);
 
-static void u7_errno_category_destroy_payload_fn(
-    struct u7_error_category const* self, struct u7_error_payload* payload);
-
 static struct u7_error_category u7_errno_category_static_category = {
     .name = "Errno",
     .make_payload_fn = &u7_errno_category_make_payload_fn,
-    .destroy_payload_fn = &u7_errno_category_destroy_payload_fn,
 };
 
 static const char u7_errno_category_static_fallback_message[] =
     "<u7_error:fail>";
 
+static void u7_errno_category_payload_dispose_fn(
+    struct u7_error_payload* self) {
+  (void)self;
+  assert(self->category == &u7_errno_category_static_category);
+  free((char*)self->message);
+  free(self);
+}
+
 static struct u7_error_payload u7_errno_category_static_fallback_payload = {
     .ref_count = 1,
+    .dispose_fn = NULL,
     .category = &u7_errno_category_static_category,
     .message = u7_errno_category_static_fallback_message,
     .message_length = sizeof(u7_errno_category_static_fallback_message) - 1,
@@ -180,20 +187,12 @@ static struct u7_error_payload const* u7_errno_category_make_payload_fn(
     return &u7_errno_category_static_fallback_payload;
   }
   result->ref_count = 1;
+  result->dispose_fn = &u7_errno_category_payload_dispose_fn;
   result->category = &u7_errno_category_static_category;
   result->message = message;
   result->message_length = message_length;
   result->cause = cause;
   return result;
-}
-
-static void u7_errno_category_destroy_payload_fn(
-    struct u7_error_category const* self, struct u7_error_payload* payload) {
-  (void)self;
-  assert(self == &u7_errno_category_static_category);
-  u7_error_release(payload->cause);
-  free((char*)payload->message);
-  free(payload);
 }
 
 struct u7_error_category const* u7_errno_category() {
