@@ -56,7 +56,6 @@ struct u7_error_payload {
   u7_error cause;
 };
 
-// NOTE: Message should be deallocatable with free().
 typedef struct u7_error_payload const* (*u7_error_category_make_payload_fn_t)(
     struct u7_error_category const* self, char* message, int message_length,
     u7_error cause);
@@ -66,6 +65,10 @@ struct u7_error_category {
   const char* name;
 
   // Factory function for payload of this category.
+  //
+  // NOTE: `message` argument must be deallocatable with free().
+  //
+  // If message_length is negative, returns an error with the "fallback" payload.
   u7_error_category_make_payload_fn_t make_payload_fn;
 };
 

@@ -103,7 +103,7 @@ u7_error u7_verrorf_with_cause(struct u7_error_category const* category,
 fail:
   free(message);
   message = NULL;
-  message_length = 1;
+  message_length = -1;
 ret:
   result.error_code = error_code;
   result.payload =
