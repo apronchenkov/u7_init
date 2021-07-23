@@ -180,7 +180,7 @@ static struct u7_error_payload const* u7_errno_category_make_payload_fn(
   }
   struct u7_error_payload* result =
       (struct u7_error_payload*)malloc(sizeof(struct u7_error_payload));
-  if (result = NULL) {
+  if (result == NULL) {
     free(message);
     u7_error_release(cause);
     __atomic_fetch_add(&u7_errno_category_static_fallback_payload.ref_count, 1,
