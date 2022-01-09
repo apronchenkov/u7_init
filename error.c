@@ -42,6 +42,13 @@ u7_error u7_verrorf_with_cause(struct u7_error_category const* category,
   u7_error result;
   int message_length = -1;
   char* message = NULL;
+  {  // Sanity check.
+    assert(error_code != 0);
+    if (error_code == 0) {
+      u7_release(cause);
+      return u7_ok();
+    }
+  }
   {
     // Fast case: format=""
     if (format[0] == '\0') {
