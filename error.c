@@ -45,7 +45,7 @@ u7_error u7_verrorf_with_cause(struct u7_error_category const* category,
   {  // Sanity check.
     assert(error_code != 0);
     if (error_code == 0) {
-      u7_release(cause);
+      u7_error_release(cause);
       return u7_ok();
     }
   }
