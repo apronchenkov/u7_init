@@ -87,6 +87,13 @@ void u7_error_release(u7_error self);
 // Clears the error structure.
 void u7_error_clear(u7_error* self);
 
+// Moves ownership of the error struct.
+static inline u7_error u7_error_move(u7_error* self) {
+  u7_error result = *self;
+  *self = u7_ok();
+  return result;
+}
+
 // Returns error's category name.
 static inline const char* u7_error_category_name(u7_error error) {
   return error.error_code ? error.payload->category->name : "OK";
