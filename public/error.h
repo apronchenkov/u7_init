@@ -68,12 +68,13 @@ struct u7_error_category {
   //
   // NOTE: `message` argument must be deallocatable with free().
   //
-  // If message_length is negative, returns an error with the "fallback" payload.
+  // If message_length is negative, returns an error with the "fallback"
+  // payload.
   u7_error_category_make_payload_fn_t make_payload_fn;
 };
 
 // Returns a pointer to an ok category.
-static inline u7_error u7_ok() {
+static inline u7_error u7_ok(void) {
   u7_error result = {0};
   return result;
 }
@@ -141,7 +142,7 @@ u7_error u7_errorf(struct u7_error_category const* category, int error_code,
       u7_error_message(e)
 
 // Returns a pointer to an error category based on errno (see errno.h).
-struct u7_error_category const* u7_errno_category();
+struct u7_error_category const* u7_errno_category(void);
 
 u7_error u7_errnof(int errno_code, const char* format, ...)
     __attribute__((format(printf, 2, 3)));

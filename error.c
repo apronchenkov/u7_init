@@ -203,7 +203,7 @@ static struct u7_error_payload const* u7_errno_category_make_payload_fn(
   return result;
 }
 
-struct u7_error_category const* u7_errno_category() {
+struct u7_error_category const* u7_errno_category(void) {
   return &u7_errno_category_static_category;
 }
 
