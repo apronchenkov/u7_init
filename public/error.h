@@ -1,6 +1,8 @@
 #ifndef U7_ERROR_H_
 #define U7_ERROR_H_
 
+#include "@/public/refcount.h"
+
 #include <stdarg.h>
 #include <stdbool.h>
 
@@ -31,8 +33,7 @@ struct u7_error_payload {
   // Please ignore this field.
   // This field must be used only by u7_error_acquire() and u7_error_release().
   //
-  // Reference counter.
-  /* mutable */ volatile int ref_count;
+  /* mutable */ u7_refcount refcount;
 
   // Please ignore this field.
   // This field must be used only by u7_error_release().

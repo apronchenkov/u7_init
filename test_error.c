@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 u7_error fn_ok(void) { return u7_ok(); }
 

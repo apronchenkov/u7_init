@@ -1,5 +1,7 @@
 #include "@/public/error.h"
 
+#include "@/public/refcount.h"
+
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
@@ -8,8 +10,7 @@
 
 u7_error u7_error_acquire(u7_error self) {
   if (self.payload) {
-    __atomic_fetch_add(&((struct u7_error_payload*)self.payload)->ref_count, 1,
-                       __ATOMIC_RELAXED);
+    u7_refcount_increment(&self.payload->refcount);
   }
   return self;
 }
@@ -17,8 +18,7 @@ u7_error u7_error_acquire(u7_error self) {
 void u7_error_release(u7_error self) {
   // Avoid reccursion.
   struct u7_error_payload* payload = (struct u7_error_payload*)self.payload;
-  while (payload &&
-         1 == __atomic_fetch_add(&payload->ref_count, -1, __ATOMIC_RELAXED)) {
+  while (payload && !u7_refcount_decrement(&payload->refcount)) {
     struct u7_error_payload* const cause_payload =
         (struct u7_error_payload*)payload->cause.payload;
     if (payload->dispose_fn != NULL) {
@@ -158,14 +158,13 @@ static const char u7_errno_category_static_fallback_message[] =
 
 static void u7_errno_category_payload_dispose_fn(
     struct u7_error_payload* self) {
-  (void)self;
   assert(self->category == &u7_errno_category_static_category);
   free((char*)self->message);
   free(self);
 }
 
 static struct u7_error_payload u7_errno_category_static_fallback_payload = {
-    .ref_count = 1,
+    .refcount = U7_REFCOUNT_INIT,
     .dispose_fn = NULL,
     .category = &u7_errno_category_static_category,
     .message = u7_errno_category_static_fallback_message,
@@ -181,8 +180,7 @@ static struct u7_error_payload const* u7_errno_category_make_payload_fn(
   if (message_length < 0) {
     free(message);
     u7_error_release(cause);
-    __atomic_fetch_add(&u7_errno_category_static_fallback_payload.ref_count, 1,
-                       __ATOMIC_RELAXED);
+    u7_refcount_increment(&u7_errno_category_static_fallback_payload.refcount);
     return &u7_errno_category_static_fallback_payload;
   }
   struct u7_error_payload* result =
@@ -190,11 +188,10 @@ static struct u7_error_payload const* u7_errno_category_make_payload_fn(
   if (result == NULL) {
     free(message);
     u7_error_release(cause);
-    __atomic_fetch_add(&u7_errno_category_static_fallback_payload.ref_count, 1,
-                       __ATOMIC_RELAXED);
+    u7_refcount_increment(&u7_errno_category_static_fallback_payload.refcount);
     return &u7_errno_category_static_fallback_payload;
   }
-  result->ref_count = 1;
+  u7_refcount_init(&result->refcount);
   result->dispose_fn = &u7_errno_category_payload_dispose_fn;
   result->category = &u7_errno_category_static_category;
   result->message = message;

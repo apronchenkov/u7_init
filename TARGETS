@@ -1,19 +1,34 @@
 cc_library(
-    name='error',
+    name='u7_init',
     srcs=[
+        'init.c',
         'error.c',
     ],
     headers=[
+        'public/init.h',
+        'public/refcount.h',
         'public/error.h',
+    ],
+    deps=[],
+)
+
+cc_binary(
+    name='test_init',
+    srcs=[
+        'test_init.c',
+        'test_init_mod.c',
+    ],
+    deps=[
+        ':u7_init',
     ],
 )
 
 cc_binary(
-    name='test',
+    name='test_error',
     srcs=[
-        'test.c',
+        'test_error.c',
     ],
     deps=[
-        ':error',
+        ':u7_init',
     ],
 )
