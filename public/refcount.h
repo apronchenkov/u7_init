@@ -32,7 +32,8 @@ static inline void u7_refcount_increment(const u7_refcount* refcount) {
 // Inserts barriers to ensure that state written before this method returns
 // false will be visible to a thread that just observed this method returning
 // false.  Always returns false when the immortal bit is set.
-static inline bool u7_refcount_decrement(const u7_refcount* refcount) {
+__attribute__((__warn_unused_result__)) static inline bool
+u7_refcount_decrement(const u7_refcount* refcount) {
   const int count =
       atomic_load_explicit((atomic_int*)&refcount->count, memory_order_relaxed);
   return (count != 1 &&

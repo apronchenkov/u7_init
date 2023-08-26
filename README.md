@@ -66,4 +66,6 @@ Triggering:
 ```
 
 
-## A reference counting library
+## A reference counting type
+
+## A spinlock type

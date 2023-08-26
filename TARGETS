@@ -1,15 +1,27 @@
 cc_library(
     name='u7_init',
     srcs=[
-        'init.c',
         'error.c',
+        'init.c',
+        'spinlock.c',
     ],
     headers=[
+        'public/error.h',
         'public/init.h',
         'public/refcount.h',
-        'public/error.h',
+        'public/spinlock.h',
     ],
     deps=[],
+)
+
+cc_binary(
+    name='test_error',
+    srcs=[
+        'test_error.c',
+    ],
+    deps=[
+        ':u7_init',
+    ],
 )
 
 cc_binary(
@@ -24,9 +36,9 @@ cc_binary(
 )
 
 cc_binary(
-    name='test_error',
+    name='test_spinlock',
     srcs=[
-        'test_error.c',
+        'test_spinlock.c',
     ],
     deps=[
         ':u7_init',
