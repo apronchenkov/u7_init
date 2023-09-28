@@ -29,11 +29,19 @@ static inline void u7_refcount_increment(const u7_refcount* refcount) {
 // Decrements the reference count.
 //
 // Returns false if there are no references outstanding; true otherwise.
-// Inserts barriers to ensure that state written before this method returns
-// false will be visible to a thread that just observed this method returning
-// false.  Always returns false when the immortal bit is set.
 __attribute__((__warn_unused_result__)) static inline bool
 u7_refcount_decrement(const u7_refcount* refcount) {
+  return (atomic_fetch_sub_explicit((atomic_int*)&refcount->count, 1,
+                                    memory_order_acq_rel) != 1);
+}
+
+// Decrements the reference count; this function is more efficient if you expect
+// exclusive ownership.
+//
+// Returns false if there are no references outstanding; true otherwise.
+//
+__attribute__((__warn_unused_result__)) static inline bool
+u7_refcount_skewed_decrement(const u7_refcount* refcount) {
   const int count =
       atomic_load_explicit((atomic_int*)&refcount->count, memory_order_relaxed);
   return (count != 1 &&

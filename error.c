@@ -18,7 +18,7 @@ u7_error u7_error_acquire(u7_error self) {
 void u7_error_release(u7_error self) {
   // Avoid reccursion.
   struct u7_error_payload* payload = (struct u7_error_payload*)self.payload;
-  while (payload && !u7_refcount_decrement(&payload->refcount)) {
+  while (payload && !u7_refcount_skewed_decrement(&payload->refcount)) {
     struct u7_error_payload* const cause_payload =
         (struct u7_error_payload*)payload->cause.payload;
     if (payload->dispose_fn != NULL) {
