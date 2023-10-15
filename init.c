@@ -37,14 +37,14 @@ u7_error u7_init(void) {
     array[i++] = it;
   }
   qsort(array, count, sizeof(array[0]), &u7_initizlizer_cmp_by_name);
-  for (size_t i = 1; i < count; ++i) {
+  for (i = 1; i < count; ++i) {
     if (strcmp(array[i - 1]->name, array[i]->name) == 0) {
-      return u7_errnof(EINVAL, "u7_int: non-unique initializer name: %s",
+      return u7_errnof(EINVAL, "u7_init: non-unique initializer name: %s",
                        array[i]->name);
     }
   }
   qsort(array, count, sizeof(array[0]), &u7_initizlizer_cmp);
-  for (size_t i = 0; i < count; ++i) {
+  for (i = 0; i < count; ++i) {
     u7_error error = array[i]->init_fn();
     if (error.error_code) {
       free(array);
