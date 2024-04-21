@@ -58,10 +58,10 @@ u7_error u7_verrorf_with_cause(struct u7_error_category const* category,
   {
     // Fast case: format="%s"
     if (format[0] == '%' && format[1] == 's' && format[2] == '\0') {
-      message = strdup(va_arg(arg, const char*));
-      if (message) {
-        message_length = strlen(message);
-      }
+      const char* tmp = va_arg(arg, const char*);
+      message_length = strlen(tmp);
+      message = malloc(message_length + 1);
+      memcpy(message, tmp, message_length + 1);
       goto ret;
     }
   }
@@ -70,7 +70,9 @@ u7_error u7_verrorf_with_cause(struct u7_error_category const* category,
     if (format[0] == '%' && format[1] == '.' && format[2] == '*' &&
         format[3] == 's' && format[4] == '\0') {
       message_length = va_arg(arg, int);
-      message = strndup(va_arg(arg, const char*), message_length);
+      message = malloc(message_length + 1);
+      memcpy(message, va_arg(arg, const char*), message_length);
+      message[message_length] = '\0';
       goto ret;
     }
   }
