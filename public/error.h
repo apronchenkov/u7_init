@@ -1,6 +1,7 @@
 #ifndef U7_ERROR_H_
 #define U7_ERROR_H_
 
+#include "@/public/optimization.h"
 #include "@/public/refcount.h"
 
 #include <stdarg.h>
@@ -129,12 +130,12 @@ u7_error u7_errorf(struct u7_error_category const* category, int error_code,
     __attribute__((format(printf, 3, 4)));
 
 // A macro for return-if-error behaviour
-#define U7_RETURN_IF_ERROR(call)    \
-  do {                              \
-    u7_error u7_error_tmp = (call); \
-    if (u7_error_tmp.error_code) {  \
-      return u7_error_tmp;          \
-    }                               \
+#define U7_RETURN_IF_ERROR(call)                \
+  do {                                          \
+    u7_error u7_error_tmp = (call);             \
+    if (U7_UNLIKELY(u7_error_tmp.error_code)) { \
+      return u7_error_tmp;                      \
+    }                                           \
   } while (0)
 
 #define U7_ERROR_FMT "s(%d): %*s"

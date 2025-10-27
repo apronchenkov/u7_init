@@ -8,10 +8,10 @@ cc_library(
     headers=[
         'public/error.h',
         'public/init.h',
+        'public/optimization.h',
         'public/refcount.h',
         'public/spinlock.h',
     ],
-    deps=[],
 )
 
 cc_binary(
