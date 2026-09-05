@@ -1,0 +1,13 @@
+# Editor backup/autosave files.
+*~
+\#*\#
+
+# Stray local build output.
+a.out
+
+# `tg build` drops a runnable symlink next to each cc_binary/cc_test target's
+# sources, pointing into the workspace's generated bin/ directory.
+/test_testing
+/test_error
+/test_init
+/test_spinlock

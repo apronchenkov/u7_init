@@ -69,3 +69,24 @@ Triggering:
 ## A reference counting type
 
 ## A spinlock type
+
+## A small C testing library
+
+The `testing` target provides always-enabled assertions and automatic test
+registration. Test assertions are not affected by `NDEBUG`.
+
+```c
+#include <github.com/apronchenkov/u7_init/public/testing.h>
+
+U7_TEST(test_answer) {
+  U7_ASSERT_EQ_I64(6 * 7, 42);
+}
+
+int main(int argc, char** argv) {
+  return u7_testing_run_registered(argc, argv);
+}
+```
+
+The runner accepts `--list`, `--filter substring`, and
+`--filter=substring`. Assertions fail fast and report the active test name,
+source location, expressions, and typed values where available.

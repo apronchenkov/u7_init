@@ -14,6 +14,26 @@ cc_library(
     ],
 )
 
+cc_library(
+    name='testing',
+    srcs=[
+        'testing.c',
+    ],
+    headers=[
+        'public/testing.h',
+    ],
+)
+
+cc_test(
+    name='test_testing',
+    srcs=[
+        'test_testing.c',
+    ],
+    deps=[
+        ':testing',
+    ],
+)
+
 cc_binary(
     name='test_error',
     srcs=[
