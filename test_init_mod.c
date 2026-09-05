@@ -1,20 +1,26 @@
 #include "@/public/init.h"
 
-#include <github.com/apronchenkov/u7_init/public/error.h>
-#include <stdio.h>
+#include <stddef.h>
+
+char u7_testing_initializer_order[4];
+static size_t u7_testing_initializer_count;
+
+static void record(char value) {
+  u7_testing_initializer_order[u7_testing_initializer_count++] = value;
+}
 
 static u7_error init_foo(void) {
-  puts("foo");
+  record('f');
   return u7_ok();
 }
 
 static u7_error init_bar(void) {
-  puts("bar");
+  record('b');
   return u7_ok();
 }
 
 static u7_error init_buz(void) {
-  puts("buz");
+  record('z');
   return u7_ok();
 }
 

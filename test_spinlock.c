@@ -1,118 +1,56 @@
-// Stats for the custom implementation for macbook air m2:
-//
-
-// test_spinlock 1
-// 0.789
-// 0.790
-// 0.787
-// 0.790
-// 0.789
-// 0.788
-// 0.789
-// 0.789
-// 0.789
-// 0.789
-// 0.791
-// 0.790
-// 0.790
-
-// ./test_spinlock 2
-// 6.994
-// 6.984
-// 7.028
-// 7.010
-// 6.987
-// 6.983
-// 6.984
-// 6.987
-// 6.952
-// 6.924
-// 6.997
-// 7.003
-// 6.881
-// 6.980
-
-// ./test_spinlock 3
-// 6.902
-// 6.915
-// 6.978
-// 6.960
-// 7.103
-// 6.908
-// 7.141
-// 6.691
-// 6.658
-// 6.922
-// 7.049
-// 7.111
-// 7.171
-// 7.086
-
-// ./test_spinlock 4
-// 7.110
-// 7.089
-// 7.036
-// 7.105
-// 7.075
-// 7.125
-// 7.161
-// 7.162
-// 7.037
-// 7.118
-// 7.151
-// 7.178
-// 7.100
-
 #include "@/public/spinlock.h"
+#include "@/public/testing.h"
 
 #include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <stddef.h>
 
-static long long count = 100000000;
-static u7_spinlock spinlock = U7_SPINLOCK_INIT;
+struct counter {
+  u7_spinlock lock;
+  size_t value;
+};
 
-static void* run(void* arg) {
-  (void)arg;
-  long long cnt = 0;
-  for (;;) {
-    u7_spinlock_lock(&spinlock);
-    if (count == 0) {
-      printf("%lld\n", cnt);
-      u7_spinlock_unlock(&spinlock);
-      break;
-    }
-    count -= 1;
-    u7_spinlock_unlock(&spinlock);
-    cnt += 1;
+struct worker {
+  struct counter* counter;
+  size_t iterations;
+};
+
+static void* increment(void* data) {
+  struct worker* worker = data;
+  for (size_t i = 0; i < worker->iterations; ++i) {
+    u7_spinlock_lock(&worker->counter->lock);
+    worker->counter->value += 1;
+    u7_spinlock_unlock(&worker->counter->lock);
   }
   return NULL;
 }
 
-static void usage(void) {
-  fprintf(stderr, "usage: number_of_threads [count]\n\n");
-  exit(-1);
+U7_TEST(test_init_lock_unlock_and_trylock) {
+  u7_spinlock lock;
+  u7_spinlock_init(&lock);
+  U7_ASSERT(u7_spinlock_trylock(&lock));
+  U7_ASSERT(!u7_spinlock_trylock(&lock));
+  u7_spinlock_unlock(&lock);
+  U7_ASSERT(u7_spinlock_trylock(&lock));
+  u7_spinlock_unlock(&lock);
+}
+
+U7_TEST(test_serializes_multiple_threads) {
+  enum { WORKERS = 4, ITERATIONS = 10000 };
+  struct counter counter = {.lock = U7_SPINLOCK_INIT};
+  struct worker worker = {
+      .counter = &counter,
+      .iterations = ITERATIONS,
+  };
+  pthread_t threads[WORKERS];
+  for (size_t i = 0; i < WORKERS; ++i) {
+    U7_ASSERT_EQ(pthread_create(&threads[i], NULL, increment, &worker), 0);
+  }
+  for (size_t i = 0; i < WORKERS; ++i) {
+    U7_ASSERT_EQ(pthread_join(threads[i], NULL), 0);
+  }
+  U7_ASSERT_EQ(counter.value, WORKERS * ITERATIONS);
 }
 
 int main(int argc, char** argv) {
-  if (argc == 1 || argc > 3) {
-    usage();
-  }
-  unsigned int number_of_threads = 1;
-  if (sscanf(argv[1], "%u", &number_of_threads) != 1) {
-    usage();
-  }
-  if (argc == 3 && sscanf(argv[2], "%lld", &count) != 1) {
-    usage();
-  }
-  pthread_t* thread_ids =
-      (pthread_t*)malloc(number_of_threads * sizeof(pthread_t));
-  for (unsigned int i = 0; i < number_of_threads; ++i) {
-    pthread_create(&thread_ids[i], NULL, &run, NULL);
-  }
-  for (unsigned int i = 0; i < number_of_threads; ++i) {
-    pthread_join(thread_ids[i], NULL);
-  }
-  return 0;
+  return u7_testing_run_registered(argc, argv);
 }

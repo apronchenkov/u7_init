@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +35,17 @@ void u7_error_clear(u7_error* self) {
   self->payload = NULL;
 }
 
+static int u7_safe_strlen(const char* str, int maxlen) {
+  if (maxlen < 0) {
+    maxlen = INT_MAX;
+  }
+  const char* end = memchr(str, '\0', maxlen);
+  if (end == NULL) {
+    return maxlen;
+  }
+  return end - str;
+}
+
 // Returns an error object with given category.
 u7_error u7_verrorf_with_cause(struct u7_error_category const* category,
                                int error_code, u7_error cause,
@@ -52,6 +64,12 @@ u7_error u7_verrorf_with_cause(struct u7_error_category const* category,
   {
     // Fast case: format=""
     if (format[0] == '\0') {
+      message_length = 0;
+      message = malloc(1);
+      if (message == NULL) {
+        goto fail;
+      }
+      message[0] = '\0';
       goto ret;
     }
   }
@@ -59,8 +77,11 @@ u7_error u7_verrorf_with_cause(struct u7_error_category const* category,
     // Fast case: format="%s"
     if (format[0] == '%' && format[1] == 's' && format[2] == '\0') {
       const char* tmp = va_arg(arg, const char*);
-      message_length = strlen(tmp);
-      message = malloc(message_length + 1);
+      message_length = u7_safe_strlen(tmp, -1);
+      message = (char*)malloc((size_t)message_length + 1);
+      if (message == NULL) {
+        goto fail;
+      }
       memcpy(message, tmp, message_length + 1);
       goto ret;
     }
@@ -70,8 +91,13 @@ u7_error u7_verrorf_with_cause(struct u7_error_category const* category,
     if (format[0] == '%' && format[1] == '.' && format[2] == '*' &&
         format[3] == 's' && format[4] == '\0') {
       message_length = va_arg(arg, int);
-      message = malloc(message_length + 1);
-      memcpy(message, va_arg(arg, const char*), message_length);
+      const char* tmp = va_arg(arg, const char*);
+      message_length = u7_safe_strlen(tmp, message_length);
+      message = (char*)malloc((size_t)message_length + 1);
+      if (message == NULL) {
+        goto fail;
+      }
+      memcpy(message, tmp, message_length);
       message[message_length] = '\0';
       goto ret;
     }

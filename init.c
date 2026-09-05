@@ -27,6 +27,9 @@ u7_error u7_init(void) {
   for (struct u7_initializer* it = u7_init_record_head; it; it = it->next) {
     count += 1;
   }
+  if (count == 0) {
+    return u7_ok();
+  }
   struct u7_initializer** array =
       (struct u7_initializer**)malloc(count * sizeof(struct u7_initializer*));
   if (array == NULL) {
@@ -39,8 +42,10 @@ u7_error u7_init(void) {
   qsort(array, count, sizeof(array[0]), &u7_initizlizer_cmp_by_name);
   for (i = 1; i < count; ++i) {
     if (strcmp(array[i - 1]->name, array[i]->name) == 0) {
-      return u7_errnof(EINVAL, "u7_init: non-unique initializer name: %s",
-                       array[i]->name);
+      u7_error error = u7_errnof(
+          EINVAL, "u7_init: non-unique initializer name: %s", array[i]->name);
+      free(array);
+      return error;
     }
   }
   qsort(array, count, sizeof(array[0]), &u7_initizlizer_cmp);

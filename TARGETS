@@ -34,17 +34,18 @@ cc_test(
     ],
 )
 
-cc_binary(
+cc_test(
     name='test_error',
     srcs=[
         'test_error.c',
     ],
     deps=[
         ':u7_init',
+        ':testing',
     ],
 )
 
-cc_binary(
+cc_test(
     name='test_init',
     srcs=[
         'test_init.c',
@@ -52,15 +53,17 @@ cc_binary(
     ],
     deps=[
         ':u7_init',
+        ':testing',
     ],
 )
 
-cc_binary(
+cc_test(
     name='test_spinlock',
     srcs=[
         'test_spinlock.c',
     ],
     deps=[
         ':u7_init',
+        ':testing',
     ],
 )
