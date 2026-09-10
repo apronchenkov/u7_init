@@ -15,16 +15,16 @@ void u7_testing_register(struct u7_testing_case* test) {
   u7_testing_registered_tests = test;
 }
 
-static _Noreturn void u7_testing_fail(const char* file, int line,
-                                      const char* message) {
+[[noreturn]] static void u7_testing_fail(const char* file, int line,
+                                         const char* message) {
   fprintf(stderr, "%s:%d: %s: %s\n", file, line,
           u7_testing_current_name != NULL ? u7_testing_current_name : "test",
           message);
   abort();
 }
 
-_Noreturn void u7_testing_assert_fail(const char* file, int line,
-                                      const char* format, ...) {
+[[noreturn]] void u7_testing_assert_fail(const char* file, int line,
+                                         const char* format, ...) {
   char message[1024];
   va_list args;
   va_start(args, format);

@@ -8,6 +8,7 @@ cc_library(
     headers=[
         'public/error.h',
         'public/init.h',
+        'public/math.h',
         'public/optimization.h',
         'public/refcount.h',
         'public/spinlock.h',
@@ -24,6 +25,14 @@ cc_library(
     ],
 )
 
+cc_library(
+    name='test_shared',
+    headers=[
+        'test_math_shared.h',
+        'test_testing_shared.h',
+    ],
+)
+
 cc_test(
     name='test_testing',
     srcs=[
@@ -31,6 +40,42 @@ cc_test(
     ],
     deps=[
         ':testing',
+        ':test_shared',
+    ],
+)
+
+cc_test(
+    name='test_testing_cpp',
+    srcs=[
+        'test_testing_cpp.cpp',
+    ],
+    deps=[
+        ':testing',
+        ':test_shared',
+    ],
+)
+
+cc_test(
+    name='test_math',
+    srcs=[
+        'test_math.c',
+    ],
+    deps=[
+        ':u7_init',
+        ':testing',
+        ':test_shared',
+    ],
+)
+
+cc_test(
+    name='test_math_cpp',
+    srcs=[
+        'test_math_cpp.cpp',
+    ],
+    deps=[
+        ':u7_init',
+        ':testing',
+        ':test_shared',
     ],
 )
 

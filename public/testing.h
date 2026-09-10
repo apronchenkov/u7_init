@@ -33,8 +33,8 @@ int u7_testing_run(int argc, char** argv, struct u7_testing_case const* tests,
 void u7_testing_register(struct u7_testing_case* test);
 int u7_testing_run_registered(int argc, char** argv);
 
-_Noreturn void u7_testing_assert_fail(const char* file, int line,
-                                      const char* format, ...)
+[[noreturn]] void u7_testing_assert_fail(const char* file, int line,
+                                         const char* format, ...)
     __attribute__((format(printf, 3, 4)));
 
 // U7_ASSERT_EQ.
@@ -61,28 +61,57 @@ struct u7_testing_value {
   } as;
 };
 
+// Declaration-form designated initializers, not compound-literal
+// expressions: the latter aren't standard C++, and this header is included
+// from both languages.
 static inline struct u7_testing_value u7_testing_value_i64(int64_t value) {
-  return (struct u7_testing_value){.kind = U7_TESTING_KIND_I64,
-                                   .as = {.i64 = value}};
+  struct u7_testing_value result = {.kind = U7_TESTING_KIND_I64,
+                                    .as = {.i64 = value}};
+  return result;
 }
 
 static inline struct u7_testing_value u7_testing_value_u64(uint64_t value) {
-  return (struct u7_testing_value){.kind = U7_TESTING_KIND_U64,
-                                   .as = {.u64 = value}};
+  struct u7_testing_value result = {.kind = U7_TESTING_KIND_U64,
+                                    .as = {.u64 = value}};
+  return result;
 }
 
 static inline struct u7_testing_value u7_testing_value_f64(double value) {
-  return (struct u7_testing_value){.kind = U7_TESTING_KIND_F64,
-                                   .as = {.f64 = value}};
+  struct u7_testing_value result = {.kind = U7_TESTING_KIND_F64,
+                                    .as = {.f64 = value}};
+  return result;
 }
 
 static inline struct u7_testing_value u7_testing_value_str(const char* value) {
-  return (struct u7_testing_value){.kind = U7_TESTING_KIND_STR,
-                                   .as = {.str = value}};
+  struct u7_testing_value result = {.kind = U7_TESTING_KIND_STR,
+                                    .as = {.str = value}};
+  return result;
 }
 
-// Maps `value_` to a struct u7_testing_value for U7_ASSERT_EQ. Supports every
-// standard integer type, float, double, and char*/const char*.
+// Compares two typed values for equality; aborts with a diagnostic if they
+// differ, or if they cannot be compared at all (a string against a number).
+// The comparison table lives in testing.c, not here.
+void u7_testing_assert_eq(struct u7_testing_value actual,
+                          struct u7_testing_value expected,
+                          const char* actual_expression,
+                          const char* expected_expression, const char* file,
+                          int line);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
+
+// U7_TESTING_VALUE(value_) maps `value_` to a struct u7_testing_value for
+// U7_ASSERT_EQ. It accepts exactly: char, signed char, short, int, long,
+// long long, their unsigned counterparts, float, double, and
+// char*/const char* -- the same list in both languages. In C++ this is a
+// set of overloads (not declarable with C linkage, hence outside
+// extern "C" above) plus a deleted function template that rejects any
+// other type at compile time, rather than letting it silently convert to
+// one of the listed types (as plain overload resolution alone would do for
+// e.g. bool or an enum).
+#ifndef __cplusplus
+
 #define U7_TESTING_VALUE(value_)                \
   _Generic((value_),                            \
       char: u7_testing_value_i64,               \
@@ -101,14 +130,70 @@ static inline struct u7_testing_value u7_testing_value_str(const char* value) {
       char*: u7_testing_value_str,              \
       const char*: u7_testing_value_str)(value_)
 
-// Compares two typed values for equality; aborts with a diagnostic if they
-// differ, or if they cannot be compared at all (a string against a number).
-// The comparison table lives in testing.c, not here.
-void u7_testing_assert_eq(struct u7_testing_value actual,
-                          struct u7_testing_value expected,
-                          const char* actual_expression,
-                          const char* expected_expression, const char* file,
-                          int line);
+#else  // __cplusplus
+
+static inline struct u7_testing_value u7_testing_make_value(char v) {
+  return u7_testing_value_i64(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(signed char v) {
+  return u7_testing_value_i64(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(short v) {
+  return u7_testing_value_i64(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(int v) {
+  return u7_testing_value_i64(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(long v) {
+  return u7_testing_value_i64(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(long long v) {
+  return u7_testing_value_i64(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(unsigned char v) {
+  return u7_testing_value_u64(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(unsigned short v) {
+  return u7_testing_value_u64(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(unsigned int v) {
+  return u7_testing_value_u64(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(unsigned long v) {
+  return u7_testing_value_u64(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(
+    unsigned long long v) {
+  return u7_testing_value_u64(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(float v) {
+  return u7_testing_value_f64(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(double v) {
+  return u7_testing_value_f64(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(char* v) {
+  return u7_testing_value_str(v);
+}
+static inline struct u7_testing_value u7_testing_make_value(const char* v) {
+  return u7_testing_value_str(v);
+}
+// Catch-all: an exact-match template beats every listed overload's implicit
+// conversion, so any other type (bool, an enum, a pointer, ...) lands here
+// and fails to compile instead of silently converting to a listed type. A
+// plain char* needs its own overload above, not just const char*: matching
+// char* against the const char* overload requires a qualification
+// conversion, which this template's identity match on T = char* would beat.
+template <typename T>
+struct u7_testing_value u7_testing_make_value(T) = delete;
+
+#define U7_TESTING_VALUE(value_) u7_testing_make_value(value_)
+
+#endif  // __cplusplus
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define U7_ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 #define U7_TESTING_CASE(fn_) {.name = #fn_, .fn = (fn_)}
